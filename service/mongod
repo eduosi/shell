@@ -1,0 +1,95 @@
+#!/bin/bash
+#
+# mongod - this script starts and stops the MongoDB daemon
+#
+# chkconfig: - 85 15
+# description: MongoDB (from "humongous") is an open-source document database, and the leading NoSQL database.
+# processname: mongod
+# config: /etc/sysconfig/mongod
+# pidfile: /var/run/mongod.pid
+
+# Source function library.
+. /etc/rc.d/init.d/functions
+
+if [ -f /etc/sysconfig/mongod ]; then
+	. /etc/sysconfig/mongod
+fi
+
+# Source networking configuration.
+. /etc/sysconfig/network
+
+# Check that networking is up.
+[ "$NETWORKING" = "no" ] && exit 0
+
+MONGODB_HOME="/usr/local/MongoDB"
+mongod=${MONGODB_HOME}"/bin/mongod"
+PROG="MongoDB"
+configfile=${MONGODB_HOME}"/etc/mongod.conf"
+pidfile="/var/run/mongod.pid"
+lockfile="/var/lock/subsys/mongod"
+USER="daemon"
+
+STOP_TIMEOUT=${STOP_TIMEOUT-30}
+RETVAL=0
+
+# Handle NUMA access to CPUs (SERVER-3574)
+# This verifies the existence of numactl as well as testing that the command works
+NUMACTL_ARGS="--interleave=all"
+if which numactl >/dev/null 2>/dev/null && numactl $NUMACTL_ARGS ls / >/dev/null 2>/dev/null
+then
+	NUMACTL="numactl $NUMACTL_ARGS"
+else
+	NUMACTL=""
+fi
+
+start() {
+    [ -x $mongod ] || exit 5
+    [ -f $configfile ] || exit 6
+	daemon --user ${USER} ${NUMACTL} ${mongod} -f ${configfile}
+	echo -n $"Starting $PROG: "
+    RETVAL=$?
+    echo
+    [ $RETVAL -eq 0 ] && touch $lockfile
+    return $RETVAL
+}
+
+stop() {
+	echo -n $"Stopping $PROG: "
+	killproc -p ${pidfile} -d ${STOP_TIMEOUT} $mongod
+	RETVAL=$?
+    echo
+    [ $RETVAL = 0 ] && rm -f ${lockfile} ${pidfile}
+}
+
+case "$1" in
+    start)
+        start
+        ;;
+    reload|restart)
+        stop
+        start
+        ;;
+    stop)
+        stop
+        ;;
+	condrestart|try-restart)
+		if status >&/dev/null; then
+			stop
+			start
+		fi
+		;;
+	status)
+		status -p ${pidfile} $mongod
+		RETVAL=$?
+		;;
+	help)
+		$mongod --help
+		RETVAL=$?
+		;;
+    *)
+        echo "Usage: $0 {start|reload|restart|condrestart|try-restart|stop|status|help}"
+        RETVAL=2
+		;;
+esac
+
+exit $RETVAL

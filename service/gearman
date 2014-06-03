@@ -1,0 +1,81 @@
+#!/bin/bash
+#
+# gearman - this script starts and stops the gearman daemon
+#
+# chkconfig: - 85 15
+# description: Gearman provides a generic application framework to farm out work to other machines or processes that are better suited to do the work.
+#			   It allows you to do work in parallel, to load balance processing, and to call functions between languages.
+#			   It can be used in a variety of applications, from high-availability web sites to the transport of database replication events.
+#			   In other words, it is the nervous system for how distributed processing communicates.
+# processname: gearmand
+# config: /etc/sysconfig/gearmand
+# pidfile: /var/run/gearmand.pid
+
+# Source function library.
+. /etc/rc.d/init.d/functions
+
+if [ -f /etc/sysconfig/gearmand ]; then
+	. /etc/sysconfig/gearmand
+fi
+
+GEARMAND_HOME="/usr/local/gearmand"
+gearmand=$GEARMAND_HOME"/sbin/gearmand"
+PROG=$(basename $gearmand)
+pidfile=${PIDFILE-/var/run/gearmand.pid}
+lockfile=${LOCKFILE-/var/lock/subsys/gearmand}
+logfile=${LOGFILE-/var/log/gearmand/gearmand.log}
+USER="daemon"
+PORT=4730
+
+RETVAL=0
+
+start() {
+    [ -x $gearmand ] || exit 5
+    ${gearmand} --user ${USER} --port ${PORT} --pid-file ${pidfile} --log-file=${logfile} -d
+    echo -n $"Starting $PROG: "
+    RETVAL=$?
+    echo
+    [ $RETVAL -eq 0 ] && touch $lockfile
+    return $RETVAL
+}
+
+stop() {
+	echo -n $"Stopping $PROG: "
+	killproc -p ${pidfile} -d $gearmand
+	RETVAL=$?
+    echo
+    [ $RETVAL = 0 ] && rm -f ${lockfile} ${pidfile}
+}
+
+case "$1" in
+    start)
+		start
+		;;
+	reload|restart)
+        stop
+        start
+		;;
+    stop)
+		stop
+		;;
+	condrestart|try-restart)
+		if status >&/dev/null; then
+			stop
+			start
+		fi
+		;;
+	status)
+		status -p ${pidfile} $gearmand
+		RETVAL=$?
+		;;
+	help)
+		$gearmand --help
+		RETVAL=$?
+		;;
+    *)
+        echo "Usage: $0 {start|reload|restart|condrestart|try-restart|stop|status|help}"
+        RETVAL=2
+		;;
+esac
+
+exit $RETVAL

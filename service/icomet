@@ -1,0 +1,89 @@
+#!/bin/bash
+#
+# icomet - this script starts and stops the iComet Server daemon
+#
+# chkconfig: - 85 15
+# description: iComet is powerfull, can be used as the messaging server of many applications, such as web chat, mobile application, desktop application etc.
+# processname: iComet Server
+# config: /usr/local/icomet/etc/comet.conf
+# config: /etc/sysconfig/icomet
+# pidfile: /var/run/icomet.pid
+
+# Source function library.
+. /etc/rc.d/init.d/functions
+
+if [ -f /etc/sysconfig/icomet ]; then
+	. /etc/sysconfig/icomet
+fi
+
+# Source networking configuration.
+. /etc/sysconfig/network
+
+# Check that networking is up.
+[ "$NETWORKING" = "no" ] && exit 0
+
+ICOMET_HOME="/usr/local/icomet"
+icomet=$ICOMET_HOME"/comet-server"
+PROG="iComet Server"
+configfile=$ICOMET_HOME"/etc/comet.conf"
+pidfile=${PIDFILE-/var/run/icomet.pid}
+lockfile=${LOCKFILE-/var/lock/subsys/icomet}
+
+RETVAL=0
+
+start() {
+    [ -x $icomet ] || exit 5
+	[ -f $configfile ] || exit 6
+    ${icomet} -d ${configfile}
+    echo -n $"Starting $PROG: "
+    RETVAL=$?
+    echo
+    [ $RETVAL -eq 0 ] && touch $lockfile
+    return $RETVAL
+}
+
+stop() {
+	echo -n $"Stopping $PROG: "
+	killproc $icomet -QUIT
+	RETVAL=$?
+    echo
+    [ $RETVAL = 0 ] && rm -f ${lockfile} ${pidfile}
+}
+
+rh_status() {
+	status -p ${pidfile} $icomet
+	RETVAL=$?
+	return $RETVAL
+}
+
+case "$1" in
+    start)
+        start
+		;;
+	reload|restart)
+        stop
+        start
+		;;
+    stop)
+        stop
+		;;
+	condrestart|try-restart)
+		if rh_status >&/dev/null; then
+			stop
+			start
+		fi
+		;;
+	status)
+		rh_status
+		;;
+	help)
+		$icomet
+		RETVAL=$?
+		;;
+    *)
+        echo "Usage: $0 {start|reload|restart|condrestart|try-restart|stop|status|help}"
+        RETVAL=2
+		;;
+esac
+
+exit $RETVAL

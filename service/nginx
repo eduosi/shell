@@ -1,0 +1,132 @@
+#!/bin/bash
+#
+# nginx - this script starts and stops the nginx daemon
+#
+# chkconfig: - 85 15
+# description: Nginx is an HTTP(S) server, HTTP(S) reverse
+# proxy and IMAP/POP3 proxy server
+# processname: nginx
+# config: /usr/local/Tengine/config/nginx.conf
+# config: /etc/sysconfig/nginx
+# pidfile: /var/run/nginx.pid
+
+# Source function library.
+. /etc/rc.d/init.d/functions
+
+if [ -f /etc/sysconfig/nginx ]; then
+	. /etc/sysconfig/nginx
+fi
+
+# Source networking configuration.
+. /etc/sysconfig/network
+
+# Check that networking is up.
+[ "$NETWORKING" = "no" ] && exit 0
+
+NGINX_HOME="/usr/local/Tengine"
+nginx=$NGINX_HOME"/sbin/nginx"
+PROG=$(basename $NGINX_HOME)
+configfile=$NGINX_HOME"/conf/nginx.conf"
+pidfile=${PIDFILE-/var/run/nginx.pid}
+lockfile=${LOCKFILE-/var/lock/subsys/nginx}
+
+RETVAL=0
+
+start() {
+    [ -x $nginx ] || exit 5
+    [ -f $configfile ] || exit 6
+    echo -n $"Starting $PROG: "
+    daemon $nginx -c $configfile
+    RETVAL=$?
+    echo
+    [ $RETVAL -eq 0 ] && touch $lockfile
+    return $RETVAL
+}
+
+reload() {
+    configtest || return $?
+    echo -n $"Reloading $PROG: "
+    killproc $nginx -HUP
+    RETVAL=$?
+	return $RETVAL
+}
+
+force_reload() {
+    restart
+	RETVAL=$?
+	return $RETVAL
+}
+
+restart() {
+    configtest || return $?
+    stop
+    start
+}
+
+stop() {
+    echo -n $"Stopping $PROG: "
+    killproc $PROG -QUIT
+    RETVAL=$?
+    echo
+    [ $RETVAL -eq 0 ] && rm -f $lockfile
+    return $RETVAL
+    killall -9 nginx
+}
+
+configtest() {
+    $nginx -t -c $configfile
+	RETVAL=$?
+	return $RETVAL
+}
+
+rh_status() {
+    status -p ${pidfile} $nginx
+	RETVAL=$?
+	return $RETVAL
+}
+
+rh_status_q() {
+    rh_status >/dev/null 2>&1
+	RETVAL=$?
+	return $RETVAL
+}
+
+case "$1" in
+	configtest)
+		configtest
+		;;
+	start)
+		rh_status_q && exit 0
+		start
+		;;
+	stop)
+		rh_status_q || exit 0
+		stop
+		;;
+	reload)
+		rh_status_q || exit 7
+		reload
+		;;
+	force-reload)
+		force_reload
+		;;
+	restart)
+		restart
+		;;
+	status)
+		rh_status
+		;;
+	condrestart|try-restart)
+		rh_status_q || exit 0
+		;;
+	help)
+		$nginx -h
+		RETVAL=$?
+		;;
+	*)
+		echo $"Usage: $0 {start|reload|force-reload|restart|condrestart|try-restart|stop|status|configtest|help}"
+		RETVAL = 2
+		;;
+esac
+
+exit $RETVAL

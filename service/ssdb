@@ -1,0 +1,84 @@
+#!/bin/bash
+#
+# ssdb - this script starts and stops the SSDB Server daemon
+#
+# chkconfig: - 85 15
+# description: SSDB is a high performace key-value(key-string, key-zset, key-hashmap) NoSQL database, an alternative to Redis.
+# processname: SSDB Server
+# config: /etc/sysconfig/ssdb/etc/ssdb.conf
+# config: /etc/sysconfig/ssdb
+# pidfile: /var/run/mongod.pid
+
+# Source function library.
+. /etc/rc.d/init.d/functions
+
+if [ -f /etc/sysconfig/mongod ]; then
+	. /etc/sysconfig/mongod
+fi
+
+# Source networking configuration.
+. /etc/sysconfig/network
+
+# Check that networking is up.
+[ "$NETWORKING" = "no" ] && exit 0
+
+SSDB_HOME="/usr/local/ssdb"
+ssdb=${SSDB_HOME}"/ssdb-server"
+PROG="SSDB"
+configfile=${SSDB_HOME}"/etc/ssdb.conf"
+pidfile=/var/run/ssdb.pid
+lockfile=/var/lock/subsys/ssdb
+
+RETVAL=0
+
+start() {
+    [ -x $ssdb ] || exit 5
+    [ -f $ssdb_conf ] || exit 6
+    ${ssdb} -d ${ssdb_conf}
+    echo -n $"Starting $PROG: "
+    RETVAL=$?
+    echo
+    [ $RETVAL -eq 0 ] && touch $lockfile
+    return $RETVAL
+}
+
+stop() {
+	echo -n $"Stopping $PROG: "
+	killproc -p ${pidfile} -d $ssdb
+	RETVAL=$?
+    echo
+    [ $RETVAL = 0 ] && rm -f ${lockfile} ${pidfile}
+}
+
+case "$1" in
+    start)
+        start
+        ;;
+    reload|restart)
+        stop
+        start
+        ;;
+    stop)
+        stop
+        ;;
+	condrestart|try-restart)
+		if status >&/dev/null; then
+			stop
+			start
+		fi
+		;;
+	status)
+		status -p ${pidfile} $ssdb
+		RETVAL=$?
+		;;
+	help)
+		$ssdb
+		RETVAL=$?
+		;;
+    *)
+        echo "Usage: $0 {start|reload|restart|condrestart|try-restart|stop|status|help}"
+        RETVAL=2
+		;;
+esac
+
+exit $RETVAL
