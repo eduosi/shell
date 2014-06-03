@@ -18,12 +18,12 @@
 
 set -e
 
-PROJECT_NAME="zhubao-image"
-DOMAIN="image.zhubao.com"
-HOME_ROOT="/home/projects"
+PROJECT_NAME="project name"
+DOMAIN="mydomain"
+HOME_ROOT="/data/projects"
 SOURCE_DIR=$HOME_ROOT"/source"
 PROJECT_DIR=$SOURCE_DIR"/"$PROJECT_NAME
-WEB_ROOT="/home/wwwroot/"$DOMAIN
+WEB_ROOT="/data/wwwroot/"$DOMAIN
 LOG_DIR=$HOME_ROOT"/logs/"$PROJECT_NAME
 RELEASE_LOG=$LOG_DIR"/release.log"
 UPDATE_LIST_FILE=$LOG_DIR"/update_list.txt"
