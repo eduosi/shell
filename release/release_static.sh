@@ -207,14 +207,13 @@ rollback() {
     else
         cd $PROJECT_DIR
 
-        #git reset --hard $commit
+        git reset --hard $commit
         git diff-tree HEAD HEAD^ -r --name-status > $ROLLBACK_LIST_FILE
 
         local files=`awk -F 'M' '{ print $2 }' $ROLLBACK_LIST_FILE`
         for file in $files
         do
             operate $file
-
             echo "[Update] rollback file $PROJECT_DIR/$file"
         done
 
@@ -222,7 +221,6 @@ rollback() {
         for file in $files
         do
             operate $file
-
             echo "[Add] restore file $PROJECT_DIR/$source_file to $WEB_ROOT/$target_file"
         done
 
@@ -230,7 +228,6 @@ rollback() {
         for file in $files
         do
             rm -r $target_file
-
             echo "[Delete] delete file $target_file"
         done
     fi
