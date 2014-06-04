@@ -28,6 +28,7 @@ LOG_DIR=$HOME_ROOT"/logs/"$PROJECT_NAME
 RELEASE_LOG=$LOG_DIR"/release.log"
 UPDATE_LIST_FILE=$LOG_DIR"/update_list.txt"
 DELETE_LIST_FILE=$LOG_DIR"/delete_list.txt"
+ROLLBACK_LIST_FILE=$LOG_DIR"/rollback_list.txt"
 YUICOMPRESSOR_JAR=$HOME_ROOT"/lib/yuicompressor.jar"
 LAST_BACKUP_FILE=""
 
@@ -191,13 +192,69 @@ deploy() {
 
     for file in $files
     do
-        operate $file || { rollback; exit 0;}
+        operate $file
     done
 
     delete_files
 }
 
-update_code || { error "exce update_code failure"; }
-deploy
+rollback() {
+    local commit=$1
+
+    if [ "$commit" == "" ]
+    then
+        error "commit could not be empty";
+    else
+        cd $PROJECT_DIR
+
+        #git reset --hard $commit
+        git diff-tree HEAD HEAD^ -r --name-status > $ROLLBACK_LIST_FILE
+
+        local files=`awk -F 'M' '{ print $2 }' $ROLLBACK_LIST_FILE`
+        for file in $files
+        do
+            operate $file
+
+            echo "[Update] rollback file $PROJECT_DIR/$file"
+        done
+
+        local files=`awk -F 'D' '{ print $2 }' $ROLLBACK_LIST_FILE`
+        for file in $files
+        do
+            operate $file
+
+            echo "[Add] restore file $PROJECT_DIR/$source_file to $WEB_ROOT/$target_file"
+        done
+
+        local files=`awk -F 'A' '{ print $2 }' $ROLLBACK_LIST_FILE`
+        for file in $files
+        do
+            rm -r $target_file
+
+            echo "[Delete] delete file $target_file"
+        done
+    fi
+}
+
+case "$1" in
+    release)
+        update_code || { error "exce update_code failure"; }
+        deploy
+        ;;
+    rollback)
+        case "$2" in
+            --help|-h|?)
+                echo "Usage: $0 <commit>"
+                echo "       commit: use command 'git reset --hard [<commit>]' rollback code"
+                ;;
+            *)
+                rollback $2
+                ;;
+        esac
+        ;;
+    *)
+        echo "Usage: $0 {release|rollback}"
+        ;;
+esac
 
 exit 1
