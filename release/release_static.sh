@@ -3,6 +3,7 @@
 # description: 该文件是基于 Git 为版本管理系统的前端自动化发布脚本，也实用与如 PHP、Python 等脚本语言系统。
 #              该脚本主要是为了实现 javascript、css 文件的在发布时自动压缩。
 #              该脚本是基于 YUI Compressor (http://yui.github.io/yuicompressor/) 来实现 javascript、css 文件的压缩。
+#			   所以，运行该脚本，需要 Java 环境支持。
 #              由于，在 javascript 代码书写不规范的情况下，容易导致压缩后的 javascript 不可用；所以，在生产环境发布之前，一定要经过严格的测试.
 #
 #              执行流程：(1)如果是第一次发布时，会从 Git 仓库 clone 一份代码到 PROJECT_DIR；或非第一次发布时，会切换到 PROJECT_DIR 执行 git pull 命令；
@@ -108,6 +109,7 @@ update_code() {
         fi
 
         grep '|' $RELEASE_LOG | awk 'BEGIN{FS=OFS="|"} {gsub(/({[^=]+ => )|}/, "", $1); print $1;}' > $UPDATE_LIST_FILE
+		grep -E 'create mode [0-9]+' $RELEASE_LOG | awk 'BEGIN{FS=OFS=" "} {print $4;}' >> $UPDATE_LIST_FILE
     else
         cd $SOURCE_DIR
 

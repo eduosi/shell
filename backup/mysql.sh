@@ -46,7 +46,7 @@ full_backup() {
             note "数据库 $db 全量备份目录 $backup_dir  不存在，创建完成";
         fi
 
-        echo "full backup $db start ..."
+        note "full backup $db start ..."
         mysqldump --user=${USER} --password=${PASSWORD} --flush-logs --skip-lock-tables --quick $db > $backup_file || { warning "数据库 $db 备份失败"; continue; }
 
         cd $backup_dir
@@ -55,19 +55,16 @@ full_backup() {
         chown -fR mysql:mysql $backup_dir
 
         note "数据库 $db 备份成功";
-        echo "full backup $db end."
+        note "full backup $db end."
     done
 }
 
 increment_backup() {
     local StartTime=`date "-d $INCREMENT_INTERVAL ago" +"%Y-%m-%d %H:%M:%S"`
-    local DELETE_BIN_LOG_END_TIME=`date "-d $DELETE_BINLOG_TIME ago" +"%Y-%m-%d %H:%M:%S"`
+    local DELETE_BINLOG_END_TIME=`date "-d $DELETE_BINLOG_TIME ago" +"%Y-%m-%d %H:%M:%S"`
     local dbs=`ls -l $DATA_DIR | grep "^d" | awk -F " " '{print $9}'`
 
-    echo $StartTime
-    echo $DELETE_BIN_LOG_END_TIME
-
-    mysql -u$USER -p$PASSWORD -e "purge master logs before $DELETE_BINLOG_TIME" && note "delete $DELETE_BINLOG_TIME days before log";
+    mysql -u$USER -p$PASSWORD -e "purge master logs before '$DELETE_BINLOG_END_TIME'" && note "delete $DELETE_BINLOG_TIME days before log";
 
     filename=`cat $BIN_INDEX | awk -F "/" '{print $2}'`
     for i in $filename
@@ -84,11 +81,11 @@ increment_backup() {
                 note "数据库 $db 增量备份目录 $backup_dir  不存在，创建完成";
             fi
 
-            echo "increment backup $db form time $StartTime start ..."
+            note "increment backup $db form time $StartTime start ..."
 
             mysqlbinlog -d $db --start-datetime="$StartTime" $DATA_DIR/$i >> $backup_file || { warning "数据库 $db 备份失败"; continue; }
 
-            echo "increment backup $db end."
+            note "increment backup $db end."
         done
     done
 
