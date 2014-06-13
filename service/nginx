@@ -99,10 +99,6 @@ case "$1" in
 		rh_status_q && exit 0
 		start
 		;;
-	stop)
-		rh_status_q || exit 0
-		stop
-		;;
 	reload)
 		rh_status_q || exit 7
 		reload
@@ -113,11 +109,15 @@ case "$1" in
 	restart)
 		restart
 		;;
-	status)
-		rh_status
-		;;
 	condrestart|try-restart)
 		rh_status_q || exit 0
+		;;
+	stop)
+		rh_status_q || exit 0
+		stop
+		;;
+	status)
+		rh_status
 		;;
 	help)
 		$nginx -h
@@ -125,7 +125,7 @@ case "$1" in
 		;;
 	*)
 		echo $"Usage: $0 {start|reload|force-reload|restart|condrestart|try-restart|stop|status|configtest|help}"
-		RETVAL = 2
+		RETVAL=2
 		;;
 esac
 

@@ -1,0 +1,91 @@
+#!/bin/bash
+#
+# slapd - this script starts and stops the LDAP daemon
+#
+# chkconfig: - 85 15
+# description: OpenLDAP Software is an open source implementation of the Lightweight Directory Access Protocol
+# processname: slapd
+# config: /usr/local/OpenLDAP/etc/openldap/slapd.conf
+# config: /etc/sysconfig/slapd
+# pidfile: /var/run/slapd.pid
+
+# Source function library.
+. /etc/rc.d/init.d/functions
+
+if [ -f /etc/sysconfig/slapd ]; then
+    . /etc/sysconfig/slapd
+fi
+
+LDAP_HOME="/usr/local/OpenLDAP"
+slapd=$LDAP_HOME"/libexec/slapd"
+PROG=$(basename $LDAP_HOME)
+configfile=$LDAP_HOME"/etc/openldap/slapd.conf"
+pidfile=${PIDFILE-/var/run/slapd.pid}
+lockfile=${LOCKFILE-/var/lock/subsys/slapd}
+
+SERVICE_NAME="Zhubao OpenLDAP Serever"
+GROUP="root"
+USER="root"
+
+RETVAL=0
+
+start() {
+    [ -x $slapd ] || exit 5
+    [ -f $configfile ] || exit 6
+    echo -n $"Starting $PROG: "
+    $slapd -4 -n "${SERVICE_NAME}" -g ${GROUP} -u ${USER} -f ${configfile}
+    RETVAL=$?
+    echo
+    [ $RETVAL -eq 0 ] && touch $lockfile
+    return $RETVAL
+}
+
+restart() {
+    stop
+    start
+}
+
+rh_status() {
+    status -p ${pidfile} $slapd
+    RETVAL=$?
+    return $RETVAL
+}
+
+rh_status_q() {
+    rh_status >/dev/null 2>&1
+    RETVAL=$?
+    return $RETVAL
+}
+
+stop() {
+    echo -n $"Stopping $PROG: "
+    killproc $slapd -QUIT
+    RETVAL=$?
+    echo
+    [ $RETVAL -eq 0 ] && rm -f $lockfile
+    return $RETVAL
+}
+
+case "$1" in
+    start)
+        rh_status_q && exit 0
+        start
+        ;;
+    reload|restart)
+        rh_status_q || exit 7
+        restart
+        ;;
+    stop)
+        rh_status_q || exit 0
+        stop
+        ;;
+    status)
+        rh_status
+        ;;
+    *)
+        echo $"Usage: $0 {start|reload|restart|stop|status}"
+        RETVAL = 2
+        ;;
+esac
+
+exit $RETVAL
