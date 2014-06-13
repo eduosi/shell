@@ -84,7 +84,7 @@ case "$1" in
         ;;
     *)
         echo $"Usage: $0 {start|reload|restart|stop|status}"
-        RETVAL = 2
+        RETVAL=2
         ;;
 esac
 
