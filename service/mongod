@@ -45,8 +45,8 @@ fi
 start() {
     [ -x $mongod ] || exit 5
     [ -f $configfile ] || exit 6
-	daemon --user ${USER} ${NUMACTL} ${mongod} -f ${configfile}
 	echo -n $"Starting $PROG: "
+	daemon --user ${USER} ${NUMACTL} ${mongod} -f ${configfile}
     RETVAL=$?
     echo
     [ $RETVAL -eq 0 ] && touch $lockfile

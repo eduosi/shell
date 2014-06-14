@@ -1,0 +1,98 @@
+#!/bin/bash
+#
+# gerrit - this script starts and stops the Gerrit Code Review daemon
+#
+# chkconfig: - 85 15
+# description: Gerrit is a web based code review system, facilitating online code reviews for projects using the Git version control system.
+# processname: Gerrit Code Review
+# config: GERRIT_HOME/etc/gerrit.config
+# config: /etc/sysconfig/gerrit
+# pidfile: /var/run/gerrit.pid
+
+# Source function library.
+. /etc/rc.d/init.d/functions
+
+if [ -f /etc/sysconfig/gerrit ]; then
+	. /etc/sysconfig/gerrit
+fi
+
+# Source networking configuration.
+. /etc/sysconfig/network
+
+# Check that networking is up.
+[ "$NETWORKING" = "no" ] && exit 0
+
+GERRIT_HOME="GERRIT HOME"
+gerrit=${GERRIT_HOME}"/bin/gerrit.sh"
+PROG="Gerrit Code Review"
+configfile=${GERRIT_HOME}"/etc/gerrit.config"
+pidfile=/var/run/gerrit.pid
+lockfile=/var/lock/subsys/gerrit
+
+RETVAL=0
+
+start() {
+    [ -x $gerrit ] || exit 5
+    [ -f $configfile ] || exit 6
+    echo -n $"Starting $PROG: "
+    ${gerrit} start
+    RETVAL=$?
+    echo
+    [ $RETVAL -eq 0 ] && touch $lockfile
+    return $RETVAL
+}
+
+restart() {
+    [ -x $gerrit ] || exit 5
+    [ -f $configfile ] || exit 6
+    $gerrit restart
+    echo -n $"Starting $PROG: "
+    RETVAL=$?
+    echo
+    [ $RETVAL -eq 0 ] && touch $lockfile
+    return $RETVAL
+}
+
+stop() {
+	echo -n $"Stopping $PROG: "
+	killproc -p ${pidfile} -d $gerrit
+	RETVAL=$?
+    echo
+    [ $RETVAL = 0 ] && rm -f ${lockfile} ${pidfile}
+}
+
+case "$1" in
+	configtest)
+		$gerrit check
+		RETVAL=$?
+		;;
+    start)
+        start
+        ;;
+    reload|restart)
+        restart
+        ;;
+    stop)
+        stop
+        ;;
+	condrestart|try-restart)
+		if status >&/dev/null; then
+			stop
+			start
+		fi
+		;;
+	status|run|supervise)
+		$gerrit $1
+		RETVAL=$?
+		;;
+	help)
+		$gerrit
+		RETVAL=$?
+		;;
+    *)
+        echo "Usage: $0 {start|reload|restart|condrestart|try-restart|stop|status|help}"
+        RETVAL=2
+		;;
+esac
+
+exit $RETVAL

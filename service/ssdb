@@ -5,7 +5,7 @@
 # chkconfig: - 85 15
 # description: SSDB is a high performace key-value(key-string, key-zset, key-hashmap) NoSQL database, an alternative to Redis.
 # processname: SSDB Server
-# config: /etc/sysconfig/ssdb/etc/ssdb.conf
+# config: /usr/local/ssdb/etc/ssdb.conf
 # config: /etc/sysconfig/ssdb
 # pidfile: /var/run/mongod.pid
 
@@ -33,9 +33,9 @@ RETVAL=0
 
 start() {
     [ -x $ssdb ] || exit 5
-    [ -f $ssdb_conf ] || exit 6
-    ${ssdb} -d ${ssdb_conf}
+    [ -f $configfile ] || exit 6
     echo -n $"Starting $PROG: "
+    ${ssdb} -d ${configfile}
     RETVAL=$?
     echo
     [ $RETVAL -eq 0 ] && touch $lockfile

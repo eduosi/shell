@@ -37,8 +37,8 @@ RETVAL=0
 
 start() {
     [ -x $memcached ] || exit 5
-    ${memcached} -p ${PORT} -u ${USER} -m ${MAX_MEMORY} -c ${MAX_CONNEXTIONS} -R ${MAX_REQUESTS} -P ${pidfile} -d start
     echo -n $"Starting $PROG: "
+    ${memcached} -p ${PORT} -u ${USER} -m ${MAX_MEMORY} -c ${MAX_CONNEXTIONS} -R ${MAX_REQUESTS} -P ${pidfile} -d start
     RETVAL=$?
     echo
     [ $RETVAL -eq 0 ] && touch $lockfile

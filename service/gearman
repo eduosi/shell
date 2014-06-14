@@ -31,8 +31,8 @@ RETVAL=0
 
 start() {
     [ -x $gearmand ] || exit 5
-    ${gearmand} --user ${USER} --port ${PORT} --pid-file ${pidfile} --log-file=${logfile} -d
     echo -n $"Starting $PROG: "
+    ${gearmand} --user ${USER} --port ${PORT} --pid-file ${pidfile} --log-file=${logfile} -d
     RETVAL=$?
     echo
     [ $RETVAL -eq 0 ] && touch $lockfile

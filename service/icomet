@@ -34,8 +34,8 @@ RETVAL=0
 start() {
     [ -x $icomet ] || exit 5
 	[ -f $configfile ] || exit 6
-    ${icomet} -d ${configfile}
     echo -n $"Starting $PROG: "
+    ${icomet} -d ${configfile}
     RETVAL=$?
     echo
     [ $RETVAL -eq 0 ] && touch $lockfile
