@@ -32,6 +32,7 @@ DELETE_LIST_FILE=$LOG_DIR"/delete_list.txt"
 ROLLBACK_LIST_FILE=$LOG_DIR"/rollback_list.txt"
 YUICOMPRESSOR_JAR=$HOME_ROOT"/lib/yuicompressor.jar"
 LAST_BACKUP_FILE=""
+CHARSET="UTF-8"
 
 GIT_PROTOCOL=${GIT_PROTOCOL-"ssh"}
 GIT_HOST=${GIT_HOST-"git host"}
@@ -160,7 +161,7 @@ condense() {
     MSG=$MSG" file $source_file to $target_file"
 
     echo $MSG" success"
-    java -jar ${YUICOMPRESSOR_JAR} --type ${type} --charset UTF-8 $source_file -o $target_file || { warning "$MSG failure"; echo "so copy $source_file to $target_file"; cp $source_file $target_file; }
+    java -jar ${YUICOMPRESSOR_JAR} --type ${type} --charset ${CHARSET} $source_file -o $target_file || { warning "$MSG failure"; echo "so copy $source_file to $target_file"; cp $source_file $target_file; }
 
     chown ${USER}:${GROUP} $target_file
 }
