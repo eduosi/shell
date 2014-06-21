@@ -28,11 +28,12 @@ WEB_ROOT="/data/wwwroot/"$DOMAIN
 LOG_DIR=$HOME_ROOT"/logs/"$PROJECT_NAME
 RELEASE_LOG=$LOG_DIR"/release.log"
 UPDATE_LIST_FILE=$LOG_DIR"/update_list.txt"
-DELETE_LIST_FILE=$LOG_DIR"/delete_list.txt"
 ROLLBACK_LIST_FILE=$LOG_DIR"/rollback_list.txt"
 YUICOMPRESSOR_JAR=$HOME_ROOT"/lib/yuicompressor.jar"
 LAST_BACKUP_FILE=""
+
 CHARSET="UTF-8"
+GIT_CHAESET="UTF-8"
 
 GIT_PROTOCOL=${GIT_PROTOCOL-"ssh"}
 GIT_HOST=${GIT_HOST-"git host"}
@@ -54,32 +55,32 @@ error() {
 
 update_files_init() {
     local arg=$1
-    local path=$PROJECT_DIR"/"$arg
+    local path="$PROJECT_DIR/$arg"
 
-    if [ -d $path ]
+    if [ -d "$path" ]
     then
-        local files=`ls $path`
+        local files=`ls "$path"`
 
         for file in $files
         do
-            local _path=$path"/"$file
-            local temp=$file
+            local _path="$path/$file"
+            local temp="$file"
 
             if [ ! "$arg" == "" ]
             then
-                temp=$arg"/"$temp
+                temp="$arg/$temp"
             fi
 
-            if [ -d $_path ]
+            if [ -d "$_path" ]
             then
                 update_files_init "$temp"
             else
-                echo $temp >> $UPDATE_LIST_FILE
+                echo "$temp" >> $UPDATE_LIST_FILE
             fi
         done
-    elif  [ -f $path ]
+    elif  [ -f "$path" ]
     then
-        echo $arg >> $UPDATE_LIST_FILE
+        echo "$arg" >> $UPDATE_LIST_FILE
     else
         warning "$path is not exists";
     fi
@@ -87,7 +88,76 @@ update_files_init() {
     return 0
 }
 
-update_code() {
+condense() {
+    local type=$1
+    local source_file=$2
+    local target_file=$3
+    local MSG="Compression "
+
+    if [ "$type" == "js" ]
+    then
+        MSG=$MSG"javascript"
+    else
+        MSG=$MSG"css"
+    fi
+    MSG=$MSG" file $source_file to $target_file"
+
+    echo $MSG" success"
+    java -jar ${YUICOMPRESSOR_JAR} --type ${type} --charset ${CHARSET} "$source_file" -o "$target_file" || { warning "$MSG failure"; echo "so copy $source_file to $target_file"; cp $source_file $target_file; }
+
+    chown ${USER}:${GROUP} "$target_file"
+}
+
+operate() {
+	local file=$1
+
+	if [ ! -z "$file" ]
+	then
+		local source_file="$PROJECT_DIR/$file"
+		local target_file="$WEB_ROOT/$file"
+		local target_dir=`dirname "$target_file"`
+
+		if [ -f "$source_file" ]
+		then
+			mkdir -p "target_dir" || { warning "create target directory $target_dir failure"; }
+
+			if [[ "$source_file" =~ .js$ ]]
+			then
+				condense "js" "$source_file" "$target_file"
+			elif [[ "$source_file" =~ .css$ ]]
+			then
+				condense "css" "$source_file" "$target_file"
+			else
+				echo $"Copy file $source_file to $target_file"
+				cp "$source_file" "$target_file"
+			fi
+
+			chown ${USER}:${GROUP} "$target_file"
+		fi
+	fi
+}
+
+delete_file() {
+	local file=$1
+
+	if [ ! -z "$file" ]
+	then
+		local source_dir=`dirname "$PROJECT_DIR/$file"`
+		local target_file="$WEB_ROOT/$file"
+		local target_dir=`dirname "$target_file"`
+		
+		if [ ! -d "$source_dir" ]
+		then
+			echo "clear directory $target_dir"
+			rm -fR "$target_dir"
+		else
+			echo "Delete file $target_file"
+			rm -f "$target_file"
+		fi
+	fi
+}
+
+release() {
     mkdir -p $LOG_DIR || { error "create log directory $LOG_DIR failure"; }
 
     if [ -f $UPDATE_LIST_FILE ]
@@ -109,8 +179,26 @@ update_code() {
             exit 1;
         fi
 
-        grep '|' $RELEASE_LOG | awk 'BEGIN{FS=OFS="|"} {gsub(/({[^=]+ => )|}/, "", $1); print $1;}' > $UPDATE_LIST_FILE
-		grep -E 'create mode [0-9]+' $RELEASE_LOG | awk 'BEGIN{FS=OFS=" "} {print $4;}' >> $UPDATE_LIST_FILE
+        cd $PROJECT_DIR
+		git diff-tree HEAD -r --name-status > $UPDATE_LIST_FILE
+
+		while read i;
+        do
+			temp=`echo $i|awk -F 'A' '{gsub("\"", "", $2); gsub(/^ *| *$/, "", $2); print $2;}'`;
+            operate "$temp";
+        done < $UPDATE_LIST_FILE
+
+		while read i;
+        do
+			temp=`echo $i|awk -F 'M' '{gsub("\"", "", $2); gsub(/^ *| *$/, "", $2); print $2;}'`;
+            operate "$temp";
+        done < $UPDATE_LIST_FILE
+
+		while read i;
+        do
+            temp=`echo $i|awk -F 'D' '{gsub("\"", "", $2); gsub(/^ *| *$/, "", $2); print $2;}'`;
+			delete_file "$temp";
+        done < $UPDATE_LIST_FILE
     else
         cd $SOURCE_DIR
 
@@ -120,85 +208,16 @@ update_code() {
         echo "List update files"
 
         update_files_init "" || { error "update files init failure"; }
+
+		local files=`cat $UPDATE_LIST_FILE`
+
+		for file in $files
+		do
+			operate "$file"
+		done
+
+		chown ${USER}:${GROUP} "$WEB_ROOT"
     fi
-
-    return 0
-}
-
-delete_files() {
-    grep -E '(rename)|(delete)' $RELEASE_LOG | awk 'BEGIN{FS=OFS=" =>"} {gsub(/(rename )|(delete mode [0-9]+ )|{/, "", $1); print $1;}' > $DELETE_LIST_FILE
-
-    local files=`cat $DELETE_LIST_FILE`
-    for file in $files
-    do
-        local source_dir=`dirname $PROJECT_DIR"/"$file`
-        local target_file=$WEB_ROOT"/"$file
-        local target_dir=`dirname $target_file`
-
-        if [ ! -d $source_dir ]
-        then
-            echo "clear directory $target_dir"
-            rm -fR $target_dir
-        else
-            echo "Delete file $target_file"
-            rm -f $target_file
-        fi
-    done
-}
-
-condense() {
-    local type=$1
-    local source_file=$2
-    local target_file=$3
-    local MSG="Compression "
-
-    if [ "$type" == "js" ]
-    then
-        MSG=$MSG"javascript"
-    else
-        MSG=$MSG"css"
-    fi
-    MSG=$MSG" file $source_file to $target_file"
-
-    echo $MSG" success"
-    java -jar ${YUICOMPRESSOR_JAR} --type ${type} --charset ${CHARSET} $source_file -o $target_file || { warning "$MSG failure"; echo "so copy $source_file to $target_file"; cp $source_file $target_file; }
-
-    chown ${USER}:${GROUP} $target_file
-}
-
-operate() {
-    local source_file=$PROJECT_DIR"/"$1
-    local target_file=$WEB_ROOT"/"$1
-    local target_dir=`dirname $target_file`
-
-    if [ -f $source_file ]
-    then
-        mkdir -p $target_dir || { warning "create target directory $target_dir failure"; }
-
-        if [[ $source_file =~ .js$ ]]
-        then
-            condense "js" $source_file $target_file
-        elif [[ $source_file =~ .css$ ]]
-        then
-            condense "css" $source_file $target_file
-        else
-            echo $"Copy file $source_file to $target_file"
-            cp $source_file $target_file
-        fi
-
-        chown ${USER}:${GROUP} $target_file
-    fi
-}
-
-deploy() {
-    local files=`cat $UPDATE_LIST_FILE`
-
-    for file in $files
-    do
-        operate $file
-    done
-
-    delete_files
 }
 
 rollback() {
@@ -213,33 +232,34 @@ rollback() {
         git reset --hard $commit
         git diff-tree HEAD HEAD^ -r --name-status > $ROLLBACK_LIST_FILE
 
-        local files=`awk -F 'M' '{ print $2 }' $ROLLBACK_LIST_FILE`
-        for file in $files
+		while read i;
         do
-            operate $file
-            echo "[Update] rollback file $PROJECT_DIR/$file"
-        done
+			temp=`echo $i|awk -F 'A' '{gsub("\"", "", $2); gsub(/^ *| *$/, "", $2); print $2;}'`;
+            delete_file "$temp";
+        done < $ROLLBACK_LIST_FILE
 
-        local files=`awk -F 'D' '{ print $2 }' $ROLLBACK_LIST_FILE`
-        for file in $files
+		while read i;
         do
-            operate $file
-            echo "[Add] restore file $PROJECT_DIR/$source_file to $WEB_ROOT/$target_file"
-        done
+			temp=`echo $i|awk -F 'M' '{gsub("\"", "", $2); gsub(/^ *| *$/, "", $2); print $2;}'`;
+            operate "$temp";
+        done < $UPDATE_LIST_FILE
 
-        local files=`awk -F 'A' '{ print $2 }' $ROLLBACK_LIST_FILE`
-        for file in $files
+		while read i;
         do
-            rm -r $target_file
-            echo "[Delete] delete file $target_file"
-        done
+			temp=`echo $i|awk -F 'D' '{gsub("\"", "", $2); gsub(/^ *| *$/, "", $2); print $2;}'`;
+			operate "$temp";
+        done < $UPDATE_LIST_FILE
     fi
 }
 
+# 设置编码和文件名允许中文等字符  
+git config --global core.quotepath false         # 设置文件名允许中文等字符
+git config --global i18n.logoutputencoding ${GIT_CHAESET} # 设置git log输出时编码
+export LESSCHARSET=${GIT_CHAESET}
+
 case "$1" in
     release)
-        update_code || { error "exce update_code failure"; }
-        deploy
+		release
         ;;
     rollback)
         case "$2" in
@@ -257,4 +277,4 @@ case "$1" in
         ;;
 esac
 
-exit 1
+exit 0
