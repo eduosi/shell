@@ -76,7 +76,7 @@ reload() {
             failure $"httpd shutdown"
         fi
     fi
-    echo
+    return $RETVAL
 }
 
 configtest() {
