@@ -119,7 +119,7 @@ operate() {
 
 		if [ -f "$source_file" ]
 		then
-			mkdir -p "target_dir" || { warning "create target directory $target_dir failure"; }
+			mkdir -p "$target_dir" || { warning "create target directory $target_dir failure"; }
 
 			if [[ "$source_file" =~ .js$ ]]
 			then
