@@ -11,6 +11,10 @@ LOG_DIR=$HOME_ROOT"/logs/"$PROJECT_NAME
 GIT_HOST=${GIT_HOST-"git host"}
 GIT_PORT=${GIT_PORT-git port}
 GIT_USER=${GIT_USER-"git user"}
+BRANCH="master"
+
+CHARSET="UTF-8"
+GIT_CHARSET="UTF-8"
 
 GROUP="www"
 USER="www"
@@ -32,10 +36,10 @@ done
 
 case "$ACTION" in
     release)
-        bash ./release.sh release -p="$PROJECT_NAME" --project-dir="$PROJECT_DIR" --web-root="$WEB_ROOT" --git-protocol="ssh" --git-host="$GIT_HOST" --git-port=$GIT_PORT --git-user="$GIT_USER" --group="$GROUP" --user="$USER" --log-dir="$LOG_DIR"
+        bash ./release.sh release -p="$PROJECT_NAME" --project-dir="$PROJECT_DIR" --branch="$BRANCH" --web-root="$WEB_ROOT" --git-protocol="ssh" --git-host="$GIT_HOST" --git-port=$GIT_PORT --git-user="$GIT_USER" --group="$GROUP" --user="$USER" --charset="$CHARSET" --git-charset="$GIT_CHARSET" --log-dir="$LOG_DIR"
         ;;
     rollback)
-        bash ./release.sh rollback -p="$PROJECT_NAME" --project-dir="$PROJECT_DIR" --web-root="$WEB_ROOT" --group="$GROUP" --user="$USER" --log-dir="$LOG_DIR" $OPTION
+        bash ./release.sh rollback -p="$PROJECT_NAME" --project-dir="$PROJECT_DIR" --branch="$BRANCH" --web-root="$WEB_ROOT" --group="$GROUP" --user="$USER" --charset="$CHARSET" --git-charset="$GIT_CHARSET" --log-dir="$LOG_DIR" $OPTION
         ;;
     *)
         bash ./release.sh --help
