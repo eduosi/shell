@@ -19,6 +19,9 @@ GIT_CHARSET="UTF-8"
 GROUP="www"
 USER="www"
 
+RELEASE_EXCE=$(cd "$(dirname "$0")"; pwd)
+RELEASE_EXCE=$RELEASE_EXCE"/release_static.sh"
+
 ACTION=$1
 shift
 
@@ -36,13 +39,13 @@ done
 
 case "$ACTION" in
     release)
-        bash ./release.sh release -p="$PROJECT_NAME" --project-dir="$PROJECT_DIR" --branch="$BRANCH" --web-root="$WEB_ROOT" --git-protocol="ssh" --git-host="$GIT_HOST" --git-port=$GIT_PORT --git-user="$GIT_USER" --group="$GROUP" --user="$USER" --charset="$CHARSET" --git-charset="$GIT_CHARSET" --log-dir="$LOG_DIR"
+        bash ${RELEASE_EXCE} release -p="$PROJECT_NAME" --project-dir="$PROJECT_DIR" --branch="$BRANCH" --web-root="$WEB_ROOT" --git-protocol="ssh" --git-host="$GIT_HOST" --git-port=$GIT_PORT --git-user="$GIT_USER" --group="$GROUP" --user="$USER" --charset="$CHARSET" --git-charset="$GIT_CHARSET" --log-dir="$LOG_DIR"
         ;;
     rollback)
-        bash ./release.sh rollback -p="$PROJECT_NAME" --project-dir="$PROJECT_DIR" --branch="$BRANCH" --web-root="$WEB_ROOT" --group="$GROUP" --user="$USER" --charset="$CHARSET" --git-charset="$GIT_CHARSET" --log-dir="$LOG_DIR" $OPTION
+        bash ${RELEASE_EXCE} rollback -p="$PROJECT_NAME" --project-dir="$PROJECT_DIR" --branch="$BRANCH" --web-root="$WEB_ROOT" --group="$GROUP" --user="$USER" --charset="$CHARSET" --git-charset="$GIT_CHARSET" --log-dir="$LOG_DIR" $OPTION
         ;;
     *)
-        bash ./release.sh --help
+        bash ${RELEASE_EXCE} --help
         ;;
 esac
 
