@@ -231,7 +231,13 @@ release() {
 
 		while read i;
         do
-			temp=`echo $i|awk -F 'A|M' '{gsub("\"", "", $2); gsub(/^ *| *$/, "", $2); print $2;}'`;
+			temp=`echo $i|awk -F 'A' '{gsub("\"", "", $2); gsub(/^ *| *$/, "", $2); print $2;}'`;
+            operate "$temp";
+        done < $UPDATE_LIST_FILE
+
+		while read i;
+        do
+			temp=`echo $i|awk -F 'M' '{gsub("\"", "", $2); gsub(/^ *| *$/, "", $2); print $2;}'`;
             operate "$temp";
         done < $UPDATE_LIST_FILE
 
@@ -293,7 +299,13 @@ rollback() {
 
 		while read i;
         do
-			temp=`echo $i|awk -F 'M|D' '{gsub("\"", "", $2); gsub(/^ *| *$/, "", $2); print $2;}'`;
+			temp=`echo $i|awk -F 'M' '{gsub("\"", "", $2); gsub(/^ *| *$/, "", $2); print $2;}'`;
+            operate "$temp";
+        done < $UPDATE_LIST_FILE
+
+		while read i;
+        do
+			temp=`echo $i|awk -F 'D' '{gsub("\"", "", $2); gsub(/^ *| *$/, "", $2); print $2;}'`;
             operate "$temp";
         done < $UPDATE_LIST_FILE
     fi
