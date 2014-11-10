@@ -231,19 +231,19 @@ release() {
 
 		while read i;
         do
-			temp=`echo $i|awk -F 'A' '{gsub("\"", "", $2); gsub(/^ *| *$/, "", $2); print $2;}'`;
+			temp=`echo $i|awk -F '^A' '{gsub("\"", "", $2); gsub(/^ *| *$/, "", $2); print $2;}'`;
             operate "$temp";
         done < $UPDATE_LIST_FILE
 
 		while read i;
         do
-			temp=`echo $i|awk -F 'M' '{gsub("\"", "", $2); gsub(/^ *| *$/, "", $2); print $2;}'`;
+			temp=`echo $i|awk -F '^M' '{gsub("\"", "", $2); gsub(/^ *| *$/, "", $2); print $2;}'`;
             operate "$temp";
         done < $UPDATE_LIST_FILE
 
 		while read i;
         do
-            temp=`echo $i|awk -F 'D' '{gsub("\"", "", $2); gsub(/^ *| *$/, "", $2); print $2;}'`;
+            temp=`echo $i|awk -F '^D' '{gsub("\"", "", $2); gsub(/^ *| *$/, "", $2); print $2;}'`;
 			delete_file "$temp";
         done < $UPDATE_LIST_FILE
     else
@@ -293,21 +293,21 @@ rollback() {
 
 		while read i;
         do
-			temp=`echo $i|awk -F 'A' '{gsub("\"", "", $2); gsub(/^ *| *$/, "", $2); print $2;}'`;
+			temp=`echo $i|awk -F '^A' '{gsub("\"", "", $2); gsub(/^ *| *$/, "", $2); print $2;}'`;
             delete_file "$temp";
         done < $ROLLBACK_LIST_FILE
 
 		while read i;
         do
-			temp=`echo $i|awk -F 'M' '{gsub("\"", "", $2); gsub(/^ *| *$/, "", $2); print $2;}'`;
+			temp=`echo $i|awk -F '^M' '{gsub("\"", "", $2); gsub(/^ *| *$/, "", $2); print $2;}'`;
             operate "$temp";
-        done < $UPDATE_LIST_FILE
+        done < $ROLLBACK_LIST_FILE
 
 		while read i;
         do
-			temp=`echo $i|awk -F 'D' '{gsub("\"", "", $2); gsub(/^ *| *$/, "", $2); print $2;}'`;
+			temp=`echo $i|awk -F '^D' '{gsub("\"", "", $2); gsub(/^ *| *$/, "", $2); print $2;}'`;
             operate "$temp";
-        done < $UPDATE_LIST_FILE
+        done < $ROLLBACK_LIST_FILE
     fi
 }
 
