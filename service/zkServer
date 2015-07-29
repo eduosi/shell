@@ -18,7 +18,7 @@ if [ -f /etc/sysconfig/zkServer ]; then
 	. /etc/sysconfig/zkServer
 fi
 
-ZOOKEEPER_HOME="/usr/local/ZooKeeper"
+ZOOKEEPER_HOME="/usr/local/Zookeeper"
 zookeeper=${ZOOKEEPER_HOME}"/bin/zkServer.sh"
 PROG="Apache ZooKeeper"
 pidfile=${PIDFILE-/var/run/zkServer.pid}
