@@ -1,0 +1,104 @@
+#!/bin/bash
+#
+# httpd Startup script for the Apache ZooKeeper
+#
+# chkconfig: - 85 15
+# description: The Apache ZooKeeper is a centralized service for maintaining configuration information, 
+#              naming, providing distributed synchronization, and providing group services.
+# processname: zkServer
+# config: /usr/local/zookeeper/conf/zoo.cfg
+# config: /etc/sysconfig/zkServer
+# pidfile: /var/run/zkServer.pid
+#
+
+# Source function library.
+. /etc/rc.d/init.d/functions
+
+if [ -f /etc/sysconfig/zkServer ]; then
+	. /etc/sysconfig/zkServer
+fi
+
+ZOOKEEPER_HOME="/usr/local/ZooKeeper"
+zookeeper=${ZOOKEEPER_HOME}"/bin/zkServer.sh"
+PROG="Apache ZooKeeper"
+pidfile=${PIDFILE-/var/run/zkServer.pid}
+lockfile=${LOCKFILE-/var/lock/subsys/zkServer}
+
+RETVAL=0
+
+start() {
+	echo -n $"Starting $PROG: "
+    $zookeeper start
+   	RETVAL=$?
+   	echo
+   	[ $RETVAL = 0 ] && touch ${lockfile}
+    return $RETVAL
+}
+
+start-foreground() {
+    echo -n $"Starting $PROG: "
+    $zookeeper start-foreground
+    echo
+    [ $RETVAL = 0 ] && touch ${lockfile}
+    return $RETVAL
+}
+
+restart() {
+	echo -n $"Restarting $PROG: "
+	$zookeeper restart
+	RETVAL=$?
+	echo
+	[ $RETVAL = 0 ] && touch ${lockfile}
+	return $RETVAL
+}
+
+stop() {
+    echo -n $"Stopping $PROG: "
+	$zookeeper stop    
+    RETVAL=$?
+    echo
+    [ $RETVAL = 0 ] && rm -f ${lockfile} ${pidfile}
+}
+
+upgrade() {
+	echo -n $"Upgrade $PROG: "
+	$zookeeper upgrade
+	RETVAL=$?
+}
+
+print-cmd() {
+	echo -n $"$PROG running with: "
+	$zookeeper print-cmd
+	RETVAL=$?
+}
+
+status() {
+    $zookeeper status
+	RETVAL=$?
+	return $RETVAL
+}
+
+case "$1" in
+	start)
+		start
+		;;
+	restart|reload)
+		restart
+		;;
+	stop)
+		stop
+		;;
+	status)
+		status
+		;;
+	-h|help)
+		$zookeeper $@
+		RETVAL=$?
+		;;
+	*)
+		echo $"Usage: $PROG {start|start-foreground|reload|restart|stop|upgrade|print-cmd|status|help}"
+		RETVAL=2
+		;;
+esac
+
+exit $RETVAL

@@ -5,7 +5,7 @@
 # chkconfig: - 85 15
 # description: iComet is powerfull, can be used as the messaging server of many applications, such as web chat, mobile application, desktop application etc.
 # processname: iComet Server
-# config: /usr/local/icomet/etc/comet.conf
+# config: /usr/local/icomet/etc/icomet.conf
 # config: /etc/sysconfig/icomet
 # pidfile: /var/run/icomet.pid
 
@@ -23,9 +23,9 @@ fi
 [ "$NETWORKING" = "no" ] && exit 0
 
 ICOMET_HOME="/usr/local/icomet"
-icomet=$ICOMET_HOME"/comet-server"
+icomet=$ICOMET_HOME"/bin/icomet-server"
 PROG="iComet Server"
-configfile=$ICOMET_HOME"/etc/comet.conf"
+configfile=$ICOMET_HOME"/etc/icomet.conf"
 pidfile=${PIDFILE-/var/run/icomet.pid}
 lockfile=${LOCKFILE-/var/lock/subsys/icomet}
 
