@@ -6,7 +6,7 @@
 # description: The Apache ZooKeeper is a centralized service for maintaining configuration information, 
 #              naming, providing distributed synchronization, and providing group services.
 # processname: zkServer
-# config: /usr/local/zookeeper/conf/zoo.cfg
+# config: /usr/local/Zookeeper/conf/zoo.cfg
 # config: /etc/sysconfig/zkServer
 # pidfile: /var/run/zkServer.pid
 #
