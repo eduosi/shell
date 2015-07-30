@@ -5,8 +5,8 @@
 # chkconfig: - 85 15
 # description: The Apache ZooKeeper is a centralized service for maintaining configuration information, 
 #              naming, providing distributed synchronization, and providing group services.
-# processname: zkServer
-# config: /usr/local/Zookeeper/conf/zoo.cfg
+# processname: Apache ZooKeeper
+# config: /usr/local/ZooKeeper/conf/zoo.cfg
 # config: /etc/sysconfig/zkServer
 # pidfile: /var/run/zkServer.pid
 #
@@ -18,8 +18,10 @@ if [ -f /etc/sysconfig/zkServer ]; then
 	. /etc/sysconfig/zkServer
 fi
 
-ZOOKEEPER_HOME="/usr/local/Zookeeper"
+ZOOKEEPER_HOME="/usr/local/ZooKeeper"
 zookeeper=${ZOOKEEPER_HOME}"/bin/zkServer.sh"
+ZOO_DATA_DIR=${ZOO_DATA_DIR-/data/zookeeper/data}
+ZOO_LOG_DIR=${ZOO_LOG_DIR-/data/zookeeper/log}
 PROG="Apache ZooKeeper"
 pidfile=${PIDFILE-/var/run/zkServer.pid}
 lockfile=${LOCKFILE-/var/lock/subsys/zkServer}
