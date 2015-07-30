@@ -26,6 +26,9 @@ PROG="Apache ZooKeeper"
 pidfile=${PIDFILE-/var/run/zkServer.pid}
 lockfile=${LOCKFILE-/var/lock/subsys/zkServer}
 
+source /etc/profile
+export ZOO_LOG_DIR
+
 RETVAL=0
 
 start() {
