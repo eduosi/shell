@@ -17,6 +17,8 @@
 
 set -e
 
+source /etc/profile
+
 PROJECT_NAME=""
 PROJECT_DIR=""
 WEB_ROOT=""
