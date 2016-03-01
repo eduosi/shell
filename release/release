@@ -133,7 +133,14 @@ condense() {
     MSG=$MSG" file $source_file to $target_file"
 
     note $MSG" success"
-    java -jar ${YUICOMPRESSOR_JAR} --type ${type} --charset ${CHARSET} "$source_file" -o "$target_file" || { warning "$MSG failure"; note "so copy $source_file to $target_file"; \cp $source_file $target_file; }
+
+	command -v java >/dev/null 2>&1
+	if [ $? == 0 ]; then
+		java -jar ${YUICOMPRESSOR_JAR} --type ${type} --charset ${CHARSET} "$source_file" -o "$target_file" || { warning "$MSG failure"; note "so copy $source_file to $target_file"; \cp $source_file $target_file; }
+	else
+		warning '"could not find command "java"'
+		\cp $source_file $target_file
+	fi
 
     chown ${USER}:${GROUP} "$target_file"
 }

@@ -20,7 +20,7 @@ GROUP="www"
 USER="www"
 
 RELEASE_EXCE=$(cd "$(dirname "$0")"; pwd)
-RELEASE_EXCE=$RELEASE_EXCE"/release_static.sh"
+RELEASE_EXCE=$RELEASE_EXCE"/release"
 
 ACTION=$1
 shift
