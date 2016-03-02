@@ -135,6 +135,7 @@ condense() {
 		java -jar ${YUICOMPRESSOR_JAR} --type ${type} --charset ${CHARSET} "$source_file" -o "$target_file" >/dev/null 2>&1
 		if [ $? == 0 ]; then
 			note $MSG" success"
+			chown ${USER}:${GROUP} "$target_file"
 		else
 			warning "$MSG failure"
 			note "so copy $source_file to $target_file"
@@ -144,8 +145,6 @@ condense() {
 		warning 'could not find command "java"'
 		\cp $source_file $target_file
 	fi
-
-    chown ${USER}:${GROUP} "$target_file"
 }
 
 operate() {
@@ -157,7 +156,14 @@ operate() {
 		local target_dir=`dirname "$target_file"`
 
 		if [ -f "$source_file" ]; then
-			mkdir -p "$target_dir" || { warning "create target directory $target_dir failure"; }
+			chown ${USER}:${GROUP} "$source_file"
+
+			mkdir -p "$target_dir" >/dev/null 2>&1
+			if [ $? == 0 ]; then
+				chown ${USER}:${GROUP} "$target_dir"
+			else
+				warning "create target directory $target_dir failure"
+			fi
 
 			if [[ "$source_file" =~ .js$ ]]; then
 				condense "js" "$source_file" "$target_file"
@@ -165,10 +171,8 @@ operate() {
 				condense "css" "$source_file" "$target_file"
 			else
 				note $"Copy file $source_file to $target_file"
-				cp "$source_file" "$target_file"
+				\cp "$source_file" "$target_file"
 			fi
-
-			chown ${USER}:${GROUP} "$target_file"
 		fi
 	fi
 }
@@ -182,8 +186,12 @@ delete_file() {
 		local target_dir=`dirname "$target_file"`
 
 		if [ ! -d "$source_dir" ]; then
-			note "clear directory $target_dir"
-			rm -fR "$target_dir"
+			if [ "`ls -A $target_dir`" = "" ]; then
+				note "clear directory $target_dir"
+				rm -fR "$target_dir"
+			else
+				warning "$target_dir contains files, so do could not delete"
+			fi
 		else
 			note "Delete file $target_file"
 			rm -f "$target_file"
