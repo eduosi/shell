@@ -15,8 +15,6 @@
 #              PROJECT_DIR：项目源目录，WEB_ROOT：网站根目录。之所以，不直接在 WEB_ROOT 下压缩，是为了，避免压缩后的文件与 Git 仓库中更新下来的文件产生冲突。
 #
 
-set -e
-
 source /etc/profile
 
 PROJECT_NAME=""
@@ -138,7 +136,8 @@ condense() {
 		if [ $? == 0 ]; then
 			note $MSG" success"
 		else
-			warning "$MSG failure"; note "so copy $source_file to $target_file"
+			warning "$MSG failure"
+			note "so copy $source_file to $target_file"
 			\cp $source_file $target_file
 		fi
 	else
