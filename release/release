@@ -21,7 +21,9 @@ PROJECT_NAME=""
 PROJECT_DIR=""
 WEB_ROOT=""
 LOG_DIR="/var/log/"
-YUICOMPRESSOR_JAR="/home/admin/script/release/lib/yuicompressor.jar"
+
+RELEASE_DIR=$(cd "$(dirname "$0")"; pwd)
+YUICOMPRESSOR_JAR=${RELEASE_DIR}"/lib/yuicompressor.jar"
 
 CHARSET="UTF-8"
 GIT_CHAESET="UTF-8"
@@ -270,7 +272,7 @@ release() {
         cd `dirname "$PROJECT_DIR"`
 
 		local project_git_url="$GIT_PROTOCOL://$GIT_USER@$GIT_HOST:$GIT_PORT/$PROJECT_NAME"
-        git clone ${project_git_url} > $RELEASE_LOG || { error "git clone $PROJECT_NAME form $GIT_URL error"; }
+        git clone ${project_git_url} $PROJECT_DIR > $RELEASE_LOG || { error "git clone $PROJECT_NAME form $GIT_URL error"; }
 
 		cd $PROJECT_DIR
 
