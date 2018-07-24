@@ -1,0 +1,98 @@
+#!/bin/bash
+#
+# kafka - this script starts and stops the Apache Kafka daemon
+#
+# chkconfig: - 85 15
+# description: Apache Kafka: A Distributed Streaming Platform.
+# processname: kafka
+# config: /etc/sysconfig/kafka
+# pidfile: /var/run/kafka.pid
+
+# Source function library.
+. /etc/rc.d/init.d/functions
+
+if [ -f /etc/sysconfig/kafka ]; then
+	. /etc/sysconfig/kafka
+fi
+
+# Source networking configuration.
+. /etc/sysconfig/network
+
+# Check that networking is up.
+[ "$NETWORKING" = "no" ] && exit 0
+
+KAFKA_HOME="/usr/local/kafka"
+PROG="Apache Kafka"
+configfile=${KAFKA_HOME}"/config/server.properties"
+pidfile="/var/run/kafka.pid"
+lockfile="/var/lock/subsys/kafka"
+USER="daemon"
+
+STOP_TIMEOUT=${STOP_TIMEOUT-30}
+RETVAL=0
+
+start() {
+	startShell=${KAFKA_HOME}"/bin/kafka-server-start.sh"
+    [ -x $startShell ] || exit 5
+    [ -f $configfile ] || exit 6
+	echo -n $"Starting $PROG: "
+	${startShell} -daemon %{configfile}
+    RETVAL=$?
+    echo
+    [ $RETVAL -eq 0 ] && touch $lockfile
+    return $RETVAL
+}
+
+status() {
+	pid=`ps aux|grep "${KAFKA_HOME}"|grep -v 'grep'|awk '{print $2}'`
+
+	if [ "$pid" == "" ]; then
+		echo -n $"$PROG not running"
+	else
+		echo -n $"$PROG (pid $pid) running"
+	fi
+	echo ""
+}
+
+stop() {
+	stopShell=${KAFKA_HOME}"/bin/kafka-server-stop.sh"
+    [ -x $startShell ] || exit 5
+	echo -n $"Stopping $PROG: "
+	${stopShell}
+	RETVAL=$?
+    echo
+    [ $RETVAL = 0 ] && rm -f ${lockfile} ${pidfile}
+}
+
+case "$1" in
+    start)
+        start
+        ;;
+    reload|restart)
+        stop
+        start
+        ;;
+    stop)
+        stop
+        ;;
+	condrestart|try-restart)
+		if status >&/dev/null; then
+			stop
+			start
+		fi
+		;;
+	status)
+		status
+		RETVAL=$?
+		;;
+	help)
+		$mongod --help
+		RETVAL=$?
+		;;
+    *)
+        echo "Usage: $0 {start|reload|restart|condrestart|try-restart|stop|status|help}"
+        RETVAL=2
+		;;
+esac
+
+exit $RETVAL

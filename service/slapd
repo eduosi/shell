@@ -23,15 +23,23 @@ configfile=$LDAP_HOME"/etc/openldap/slapd.conf"
 pidfile=${PIDFILE-/var/run/slapd.pid}
 lockfile=${LOCKFILE-/var/lock/subsys/slapd}
 
-SERVICE_NAME="Zhubao OpenLDAP Serever"
+SERVICE_NAME="OpenLDAP Serever"
 GROUP="root"
 USER="root"
 
 RETVAL=0
 
+configtest() {
+    [ -x $slapd ] || exit 5
+    $slapd -T test
+    RETVAL=$?
+    return $RETVAL
+}
+
 start() {
     [ -x $slapd ] || exit 5
     [ -f $configfile ] || exit 6
+    configtest || return $?
     echo -n $"Starting $PROG: "
     $slapd -4 -n "${SERVICE_NAME}" -g ${GROUP} -u ${USER} -f ${configfile}
     RETVAL=$?
@@ -67,6 +75,9 @@ stop() {
 }
 
 case "$1" in
+    configtest)
+        configtest && exit 0
+        ;;
     start)
         rh_status_q && exit 0
         start

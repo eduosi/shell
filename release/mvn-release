@@ -1,0 +1,411 @@
+#!/bin/bash
+#
+# description: 该文件是基于 Git 为版本管理系统的前端自动化发布脚本，也实用与如 PHP、Python 等脚本语言系统。
+#              该脚本主要是为了实现 javascript、css 文件的在发布时自动压缩。
+#              该脚本是基于 YUI Compressor (http://yui.github.io/yuicompressor/) 来实现 javascript、css 文件的压缩。
+#			   所以，运行该脚本，需要 Java 环境支持。
+#              由于，在 javascript 代码书写不规范的情况下，容易导致压缩后的 javascript 不可用；所以，在生产环境发布之前，一定要经过严格的测试.
+#
+#              执行流程：(1)如果是第一次发布时，会从 Git 仓库 clone 一份代码到 PROJECT_DIR；或非第一次发布时，会切换到 PROJECT_DIR 执行 git pull 命令；
+#                        (2)将当次更新的文件，记录到 UPDATE_LIST_FILE 文件中；
+#                        (3)将 javascript 和 css 文件，压缩输出到 WEB_ROOT，非 javascript 和 css 文件或在压缩文件时出错，则 copy 到 WEB_ROOT；
+#                        (4)从 WEB_ROOT 下删除已经从 Git 仓库中删除了的文件和目录；
+#                        (5)发布完成。
+#
+#              PROJECT_DIR：项目源目录，WEB_ROOT：网站根目录。之所以，不直接在 WEB_ROOT 下压缩，是为了，避免压缩后的文件与 Git 仓库中更新下来的文件产生冲突。
+#
+
+source /etc/profile
+
+PROJECT_NAME=""
+MODULE_NAME=""
+PROJECT_DIR=""
+PROJECT_TYPE="standard"
+WEB_ROOT=""
+LOG_DIR="/var/log/"
+
+RELEASE_DIR=$(cd "$(dirname "$0")"; pwd)
+
+CHARSET="UTF-8"
+GIT_CHAESET="UTF-8"
+
+GIT_PROTOCOL=${GIT_PROTOCOL-"ssh"}
+GIT_HOST=${GIT_HOST-""}
+GIT_PORT=${GIT_PORT-0}
+GIT_USER=${GIT_USER-""}
+BRANCH=${BRANCH-"master"}
+# WEB_ROOT 所属用户组
+GROUP=${GROUP-"nobody"}
+# WEB_ROOT 所属用户
+USER=${USER-"nobody"}
+
+OPTIONS=""
+
+note() {
+	printf "$*\n" 1>&2;
+}
+
+warning() {
+    printf "warning: $*\n" 1>&2;
+}
+
+error() {
+    printf "error: $*\n" 1>&2;
+    exit 1
+}
+
+git_config() {
+	# 设置编码和文件名允许中文等字符
+	git config --global core.quotepath false         # 设置文件名允许中文等字符
+	git config --global i18n.logoutputencoding ${GIT_CHAESET} # 设置 git log 输出时编码
+	export LESSCHARSET=${GIT_CHAESET}
+}
+
+usage() {
+	me=`basename "$0"`
+
+    echo "Usage: $me {release|rollback|start|stop|restart|status|h|help} [options]"
+    echo "       -p, --project-name=项目名称		Git 项目名称"
+    echo "       -m, --module-name=模块名称		模块名称"
+    echo "       --type=类型				standard|springboot，默认值：standard"
+    echo "       --profile=profile			profile"
+    echo "       --project-dir=项目路径			项目项目源码存放路径"
+    echo "       --web-root=WEB ROOT			项目关联网站根目录"
+    echo "       --charset=项目字符集			项目文件字符集"
+    echo "       --git-charset=Git 字符集			Git 终端显示字符集"
+    echo "       --git-protocol=Git 协议			Git 请求协议"
+    echo "       --git-host=Git 主机名称			Git 主机名称"
+    echo "       --git-port=Git 主机端口			Git 主机端口"
+    echo "       --git-user=Git 用户名			Git 用户名"
+    echo "       -b, --branch=分支名称			当前使用分支"
+    echo "       -g, --group=文件所属组			WEB ROOT 文件所属用户组"
+    echo "       -u, --user=文件所说用户			WEB ROOT 文件所属用户"
+    echo "       --log-dir=日志目录			log direetory"
+
+    exit 1
+}
+
+check() {
+	if [ -z "$PROJECT_NAME" ]; then
+		error "project name could not be empty"
+	fi
+
+	if [ -z "$PROJECT_DIR" ]; then
+		error "project direetory could not be empty"
+	fi
+
+	if [ -z "$WEB_ROOT" ]; then
+		error "project web root could not be empty"
+	fi
+}
+
+release() {
+	note "Release project $PROJECT_NAME";
+
+	git_config;
+	check;
+
+	local git_dir=$PROJECT_DIR"/.git"
+	if [ ! -d $git_dir ]; then
+		if [ -z "$GIT_PROTOCOL" ]; then
+			error "project git protocol could not be empty"
+		fi
+
+		if [ -z "$GIT_HOST" ]; then
+			error "project git host could not be empty"
+		fi
+
+		if [ -z "$GIT_PORT" ]; then
+			error "project git port could not be empty"
+		fi
+
+		if [ -z "$GIT_USER" ]; then
+			error "project git username could not be empty"
+		fi
+
+		note "initialize project $PROJECT_NAME with source direetory $PROJECT_DIR and WEB ROOT $WEB_ROOT";
+    fi
+
+    mkdir -p $LOG_DIR || { error "create log directory $LOG_DIR failure"; }
+
+    if [ -d $PROJECT_DIR ]
+    then
+        cd $PROJECT_DIR
+        git pull origin ${BRANCH} > $RELEASE_LOG || { error "git pull code failure"; }
+
+        local temp=`grep 'Already up-to-date' $RELEASE_LOG`
+        if [ "$temp" == "" ]; then
+            sleep 1
+        else
+            warning "Already up-to-date";
+            exit 1;
+        fi
+    else
+        cd `dirname "$PROJECT_DIR"`
+
+		local project_git_url="$GIT_PROTOCOL://$GIT_USER@$GIT_HOST:$GIT_PORT/$PROJECT_NAME"
+        git clone ${project_git_url} $PROJECT_DIR > $RELEASE_LOG || { error "git clone $PROJECT_NAME form $GIT_URL error"; }
+
+		cd $PROJECT_DIR
+    fi
+
+	note "checkout $BRANCH branch"
+	git checkout ${BRANCH}
+
+	sleep 1
+
+	chown ${USER}:${GROUP} "$WEB_ROOT"
+}
+
+rollback() {
+	note "Rollback project $PROJECT_NAME";
+
+	git_config;
+	check;
+
+    if [ "$OPTIONS" == "" ]; then
+        error "rollback options could not be empty";
+    else
+        cd $PROJECT_DIR
+
+		note "Checkout $BRANCH branch"
+		git checkout ${BRANCH}
+
+		sleep 1
+
+        git reset --hard $OPTIONS
+    fi
+}
+
+start() {
+	echo "Starting ..."
+
+	if [ ! -d "$PROJECT_DIR" ]; then
+		error "Project directory ${PROJECT_DIR} is not exists";
+	fi
+
+	MODULE_DIR="${PROJECT_DIR}/${MODULE_NAME}"
+	if [ ! -d "$MODULE_DIR" ]; then
+        error "Project module directory ${MODULE_DIR} is not exists";
+    fi
+
+	if [ "$PROJECT_TYPE" == "standard" ]; then
+		echo "standard"
+	else
+		if [ "$PROJECT_TYPE" == "springboot" ]; then
+			cd $MODULE_DIR
+
+			if [ "$profile" == "" ]; then
+				nohup mvn spring-boot:run -Dmaven.test.skip=true > "${LOG_DIR}/runtime.log" &
+			else
+				nohup mvn spring-boot:run -Dmaven.test.skip=true -Dpackage.environment=$profile > "${LOG_DIR}/runtime.log" &
+			fi
+
+			tail -f "${LOG_DIR}/runtime.log"
+		else
+			error "Unknown project type: ${PROJECT_TYPE}"
+		fi
+	fi
+}
+
+stop() {
+	echo "Stoping ..."
+
+	pids=`getpid`
+	echo "["$pids"]"
+    if [ "$pids" == "" ]; then
+        echo "Program not running.";
+	else
+		retval=`kill -9 ${pids}`;
+
+		while [ "1" = "1" ]
+		do
+			echo "...";
+
+			pids=`getpid`
+			if [ "$pids" == "" ]; then
+				echo "";
+				echo "${MODULE_NAME} stoped.";
+
+				return 0;
+			fi
+		done
+	fi
+}
+
+restart() {
+	stop
+
+	sleep 1
+
+	start
+}
+
+status() {
+	pids=`getpid`
+	if [ "$pids" == "" ]; then
+		echo "Program not running.";
+	else
+		echo "The module ${MODULE_NAME} (pid: ${pids}) of project ${PROJECT_NAME} running.";
+	fi
+}
+
+getpid() {
+	PIDS=`ps -ef | grep 'java' | grep "${PROJECT_NAME}" | grep "${MODULE_NAME}" | grep -v '$0' | grep -v 'grep' | awk '{print $2}'`;
+	pids=`echo ${PIDS} | sed 's/\\r/ /'`;
+
+	echo "${pids}";
+}
+
+ACTION=$1
+shift
+
+args_count=$#
+args_count=`expr $args_count - 1`
+i=0
+
+while test $i -le $args_count ;
+do
+	case "$1" in
+		-p=*)
+			PROJECT_NAME=${1##-p=}
+			shift
+			i=`expr $i + 1`
+			;;
+		--project-name=*)
+			PROJECT_NAME=${1##--project-name=}
+			shift
+			i=`expr $i + 1`
+			;;
+		-m=*)
+            MODULE_NAME=${1##-m=}
+            shift
+            i=`expr $i + 1`
+            ;;
+		--module-name=*)
+            MODULE_NAME=${1##--module-name=}
+            shift
+            i=`expr $i + 1`
+            ;;
+		--project-dir=*)
+			PROJECT_DIR=${1##--project-dir=}
+			shift
+			i=`expr $i + 1`
+			;;
+		--web-root=*)
+			WEB_ROOT=${1##--web-root=}
+			shift
+			i=`expr $i + 1`
+			;;
+		--type=*)
+            PROJECT_TYPE=${1##--type=}
+            shift
+            i=`expr $i + 1`
+            ;;
+		--profile=*)
+            PROFILE=${1##--profile=}
+            shift
+            i=`expr $i + 1`
+            ;;
+		--charset=*)
+			CHARSET=${1##--charset=}
+			shift
+			i=`expr $i + 1`
+			;;
+		--git-charset=*)
+			GIT_CHAESET=${1##--git-charset=}
+			shift
+			i=`expr $i + 1`
+			;;
+		--git-protocol=*)
+			GIT_PROTOCOL=${1##--git-protocol=}
+			shift
+			i=`expr $i + 1`
+			;;
+		--git-host=*)
+			GIT_HOST=${1##--git-host=}
+			shift
+			i=`expr $i + 1`
+			;;
+		--git-port=*)
+			GIT_PORT=${1##--git-port=}
+			shift
+			i=`expr $i + 1`
+			;;
+		--git-user=*)
+			GIT_USER=${1##--git-user=}
+			shift
+			i=`expr $i + 1`
+			;;
+		-b=*)
+			BRANCH=${1##-b=}
+			shift
+			i=`expr $i + 1`
+			;;
+		--branch=*)
+			BRANCH=${1##--branch=}
+			shift
+			i=`expr $i + 1`
+			;;
+		-g=*)
+			GROUP=${1##-g=}
+			shift
+			i=`expr $i + 1`
+			;;
+		--group=*)
+			GROUP=${1##--group=}
+			shift
+			i=`expr $i + 1`
+			;;
+		-u=*)
+			USER=${1##-u=}
+			shift
+			i=`expr $i + 1`
+			;;
+		--user=*)
+			USER=${1##--user=}
+			shift
+			i=`expr $i + 1`
+			;;
+		--log-dir=*)
+			LOG_DIR=${1##--log-dir=}
+			shift
+			i=`expr $i + 1`
+			;;
+		-h|--help)
+			usage
+			exit 0
+			;;
+		*)
+			case "$ACTION" in
+				rollback)
+					OPTIONS=$OPTIONS" "$1
+					shift
+					i=`expr $i + 1`
+					;;
+				*)
+					usage
+					exit 0
+					;;
+			esac
+	esac
+done
+
+RELEASE_LOG=$LOG_DIR"/release.log"
+UPDATE_LIST_FILE=$LOG_DIR"/update_list.txt"
+ROLLBACK_LIST_FILE=$LOG_DIR"/rollback_list.txt"
+
+case "$ACTION" in
+    release|rollback|start|stop|restart)
+        $ACTION
+        ;;
+	status)
+		$ACTION
+		exit 0;
+		;;
+    *)
+        echo "Usage: $0 {release|rollback|start|stop|restart|status}"
+        ;;
+esac
+
+exit 0
