@@ -13,7 +13,7 @@
 . /etc/rc.d/init.d/functions
 
 if [ -f /etc/sysconfig/gerrit ]; then
-	. /etc/sysconfig/gerrit
+    . /etc/sysconfig/gerrit
 fi
 
 # Source networking configuration.
@@ -63,8 +63,8 @@ stop() {
 
 case "$1" in
 	configtest)
-		$gerrit check
-		RETVAL=$?
+        $gerrit check
+        RETVAL=$?
 		;;
     start)
         start
@@ -76,10 +76,10 @@ case "$1" in
         stop
         ;;
 	condrestart|try-restart)
-		if status >&/dev/null; then
-			stop
-			start
-		fi
+        if status >&/dev/null; then
+            stop
+            start
+        fi
 		;;
 	status|run|supervise)
 		$gerrit $1
@@ -92,7 +92,7 @@ case "$1" in
     *)
         echo "Usage: $0 {start|reload|restart|condrestart|try-restart|stop|status|help}"
         RETVAL=2
-		;;
+        ;;
 esac
 
 exit $RETVAL

@@ -35,9 +35,12 @@ start() {
 	startShell=${KAFKA_HOME}"/bin/kafka-server-start.sh"
     [ -x $startShell ] || exit 5
     [ -f $configfile ] || exit 6
+
 	echo -n $"Starting $PROG: "
-	${startShell} -daemon %{configfile}
+	source /etc/profile
+	${startShell} -daemon ${configfile}
     RETVAL=$?
+
     echo
     [ $RETVAL -eq 0 ] && touch $lockfile
     return $RETVAL
@@ -51,7 +54,9 @@ status() {
 	else
 		echo -n $"$PROG (pid $pid) running"
 	fi
+	RETVAL=$?
 	echo ""
+	return $RETVAL
 }
 
 stop() {
